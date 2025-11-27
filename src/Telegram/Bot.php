@@ -178,14 +178,31 @@ class Bot
         $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE) ?: 0;
         curl_close($ch);
 
-        if ($statusCode >= 400) {
-            error_log('Telegram API error: ' . $result);
+        $responseBody = $this->truncateString($result, 1000);
+        $responseData = json_decode($result, true);
+        $ok = is_array($responseData) ? ($responseData['ok'] ?? false) : false;
+        $description = is_array($responseData) ? ($responseData['description'] ?? '') : '';
+
+        if ($statusCode >= 400 || !$ok) {
+            $this->logger->error('Telegram API error', [
+                'method' => $method,
+                'status' => $statusCode,
+                'ok' => $ok,
+                'description' => $description,
+                'response' => $responseBody,
+            ]);
         }
 
         $this->logger->info('Telegram API request', [
             'method' => $method,
             'status' => $statusCode,
+            'ok' => $ok,
         ]);
+    }
+
+    private function truncateString(string $value, int $limit): string
+    {
+        return mb_strlen($value) <= $limit ? $value : (mb_substr($value, 0, $limit) . '...');
     }
 
     private function saveTempImage(string $imageData): string
