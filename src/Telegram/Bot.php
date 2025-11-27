@@ -94,7 +94,9 @@ class Bot
             $this->sendPhoto($chatId, $filePath, 'Готово!');
             @unlink($filePath);
         } catch (RuntimeException $exception) {
-            error_log('Gemini image error: ' . $exception->getMessage());
+            $this->logger->error('Gemini image error', [
+                'message' => $exception->getMessage(),
+            ]);
             $this->sendMessage($chatId, 'Сервис генерации сейчас недоступен, попробуйте позже.');
         }
 
@@ -113,13 +115,22 @@ class Bot
             $reply = $this->chatService->handleUserMessage($userId, $text);
             $this->sendMessage($chatId, $reply, KeyboardFactory::mainMenu());
         } catch (RuntimeException $exception) {
-            error_log('Gemini text error: ' . $exception->getMessage());
+            $this->logger->error('Gemini text error', [
+                'message' => $exception->getMessage(),
+            ]);
             $this->sendMessage($chatId, 'Сервис диалога сейчас недоступен, попробуйте позже.');
         }
     }
 
     private function sendMessage(int|string $chatId, string $text, ?array $replyMarkup = null): void
     {
+        if (trim($text) === '') {
+            $this->logger->error('Attempted to send empty message, using fallback text instead', [
+                'method' => 'sendMessage',
+            ]);
+            $text = 'Не удалось сформировать ответ. Попробуйте ещё раз.';
+        }
+
         $payload = [
             'chat_id' => $chatId,
             'text' => $text,

@@ -42,7 +42,12 @@ class GeminiClient
             }
         }
 
-        return trim(implode("\n", $texts));
+        $result = trim(implode("\n", $texts));
+        if ($result === '') {
+            throw new RuntimeException('Gemini text response is empty');
+        }
+
+        return $result;
     }
 
     public function generateImage(string $prompt, string $aspectRatio = '16:9'): string

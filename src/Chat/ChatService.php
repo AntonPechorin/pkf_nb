@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Chat;
 
 use Gemini\GeminiClient;
+use RuntimeException;
 use User\UserStateRepository;
 
 class ChatService
@@ -34,6 +35,10 @@ class ChatService
         $history = $this->chatRepository->getMessages($sessionId, 12);
         $contents = $this->buildContents($history);
         $reply = $this->geminiClient->generateText($contents);
+
+        if (trim($reply) === '') {
+            throw new \RuntimeException('Gemini returned an empty reply');
+        }
 
         $this->chatRepository->addMessage($sessionId, 'model', $reply);
 
