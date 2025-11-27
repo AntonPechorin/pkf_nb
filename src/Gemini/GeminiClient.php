@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace Gemini;
 
 use RuntimeException;
+use Support\Logger;
 
 class GeminiClient
 {
     private const TEXT_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
     private const IMAGE_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent';
 
-    public function __construct(private readonly string $apiKey)
-    {
+    public function __construct(
+        private readonly string $apiKey,
+        private readonly ?Logger $logger = null,
+    ) {
     }
 
     /**
@@ -24,6 +27,7 @@ class GeminiClient
             'contents' => $contents,
         ];
 
+        $this->logger?->info('Gemini text request queued', ['endpoint' => self::TEXT_ENDPOINT]);
         $response = $this->postJson(self::TEXT_ENDPOINT, $payload);
 
         if (!isset($response['candidates'][0]['content']['parts'])) {
@@ -57,6 +61,7 @@ class GeminiClient
             ],
         ];
 
+        $this->logger?->info('Gemini image request queued', ['endpoint' => self::IMAGE_ENDPOINT]);
         $response = $this->postJson(self::IMAGE_ENDPOINT, $payload);
 
         $parts = $response['candidates'][0]['content']['parts'] ?? [];
@@ -108,6 +113,11 @@ class GeminiClient
         $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE) ?: 0;
         curl_close($ch);
 
+        $this->logger?->info('Gemini response received', [
+            'endpoint' => $url,
+            'status' => $statusCode,
+        ]);
+
         $decoded = json_decode($result, true);
         if (!is_array($decoded)) {
             throw new RuntimeException('Invalid JSON response from Gemini');
@@ -115,6 +125,11 @@ class GeminiClient
 
         if ($statusCode >= 400) {
             $message = $decoded['error']['message'] ?? 'Gemini API request failed';
+            $this->logger?->error('Gemini API error', [
+                'endpoint' => $url,
+                'status' => $statusCode,
+                'message' => $message,
+            ]);
             throw new RuntimeException($message);
         }
 

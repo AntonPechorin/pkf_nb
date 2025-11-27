@@ -7,6 +7,7 @@ use Chat\ChatService;
 use Database\Connection;
 use Gemini\GeminiClient;
 use Telegram\Bot;
+use Support\Logger;
 use User\UserStateRepository;
 
 require __DIR__ . '/../src/autoload.php';
@@ -20,6 +21,9 @@ if (!file_exists($configPath)) {
 
 $config = require $configPath;
 
+$logFile = $config['log']['file'] ?? sys_get_temp_dir() . '/telegram_bot.log';
+$logger = new Logger($logFile);
+
 if (!empty($config['webhook_secret'])) {
     $secret = $_GET['secret'] ?? '';
     if (!hash_equals($config['webhook_secret'], $secret)) {
@@ -29,7 +33,10 @@ if (!empty($config['webhook_secret'])) {
     }
 }
 
-$update = json_decode(file_get_contents('php://input'), true);
+$rawInput = file_get_contents('php://input') ?: '';
+$logger->info('Incoming Telegram update', ['body' => $rawInput]);
+
+$update = json_decode($rawInput, true);
 if (!is_array($update)) {
     http_response_code(400);
     echo 'Bad request';
@@ -37,11 +44,11 @@ if (!is_array($update)) {
 }
 
 $pdo = Connection::make($config['db']);
-$geminiClient = new GeminiClient($config['gemini']['api_key']);
+$geminiClient = new GeminiClient($config['gemini']['api_key'], $logger);
 $userStateRepository = new UserStateRepository($pdo);
 $chatRepository = new ChatRepository($pdo);
 $chatService = new ChatService($chatRepository, $userStateRepository, $geminiClient);
-$bot = new Bot($config['telegram']['bot_token'], $geminiClient, $chatService, $userStateRepository);
+$bot = new Bot($config['telegram']['bot_token'], $geminiClient, $chatService, $userStateRepository, $logger);
 
 $bot->handleUpdate($update);
 

@@ -9,6 +9,9 @@ return [
     'gemini' => [
         'api_key' => 'YOUR_GEMINI_API_KEY',
     ],
+    'log' => [
+        'file' => __DIR__ . '/../storage/logs/bot.log',
+    ],
     'db' => [
         'host' => 'localhost',
         'database' => 'telegram_bot',

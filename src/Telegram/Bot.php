@@ -7,6 +7,7 @@ namespace Telegram;
 use Chat\ChatService;
 use Gemini\GeminiClient;
 use RuntimeException;
+use Support\Logger;
 use User\UserStateRepository;
 
 class Bot
@@ -18,6 +19,7 @@ class Bot
         private readonly GeminiClient $geminiClient,
         private readonly ChatService $chatService,
         private readonly UserStateRepository $userStateRepository,
+        private readonly Logger $logger,
     ) {
     }
 
@@ -179,6 +181,11 @@ class Bot
         if ($statusCode >= 400) {
             error_log('Telegram API error: ' . $result);
         }
+
+        $this->logger->info('Telegram API request', [
+            'method' => $method,
+            'status' => $statusCode,
+        ]);
     }
 
     private function saveTempImage(string $imageData): string

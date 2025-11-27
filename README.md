@@ -27,8 +27,10 @@
    cp config/config.example.php config/config.php
    ```
    В `config.php` укажите TELEGRAM_BOT_TOKEN, GEMINI_API_KEY и реквизиты БД. Поле `webhook_secret` опционально для защиты вебхука.
+   При необходимости измените путь к файлу логов в `log.file` (по умолчанию `storage/logs/bot.log`).
 4. Настройте виртуальный хост/сервер (Nginx/Apache) на `public/index.php`. PHP >= 8.1 с расширениями `curl`, `json`, `mbstring`.
-5. Установите вебхук Telegram:
+5. Убедитесь, что каталог для логов существует: `mkdir -p storage/logs` (создаётся автоматически при наличии прав на запись).
+6. Установите вебхук Telegram:
    ```bash
    curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
      -d "url=https://<your-domain>/public/index.php?secret=<WEBHOOK_SECRET>"
